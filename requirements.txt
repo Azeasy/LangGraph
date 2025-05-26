@@ -8,6 +8,7 @@ charset-normalizer==3.4.2
 click==8.2.1
 cloudpickle==3.1.1
 cryptography==44.0.3
+filetype==1.2.0
 forbiddenfruit==0.1.4
 google-ai-generativelanguage==0.6.15
 google-api-core==2.24.2
@@ -27,6 +28,7 @@ jsonpatch==1.33
 jsonpointer==3.0.0
 jsonschema_rs==0.29.1
 langchain-core==0.3.61
+langchain-google-genai==2.0.10
 langgraph==0.4.7
 langgraph-api==0.2.34
 langgraph-checkpoint==2.0.26

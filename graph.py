@@ -2,11 +2,9 @@ from datetime import datetime, timezone
 from typing import Dict, List
 import logging
 
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import Graph
 from langgraph.prebuilt import create_react_agent
-from langchain_core.tools import tool
-
-import google.generativeai as genai
 import os
 from dotenv import load_dotenv
 
@@ -17,70 +15,33 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
-# Configure Gemini API
+# Check for API key
 api_key = os.getenv("GOOGLE_API_KEY")
 if not api_key:
-    logger.error("GOOGLE_API_KEY not found in environment variables")
-    raise ValueError("GOOGLE_API_KEY not found in environment variables")
-
-genai.configure(api_key=api_key)
-model = genai.GenerativeModel(os.getenv("MODEL_NAME"))
-logger.info(f"Initialized Gemini model: {os.getenv('MODEL_NAME')}")
+    raise ValueError("GOOGLE_API_KEY environment variable is required")
 
 
-@tool("get_current_time_tool", parse_docstring=True)
-def get_current_time() -> str:
-    """Return the current UTC time in ISO-8601 format."""
-    return datetime.now(timezone.utc).isoformat()
+def get_current_time() -> dict:
+    """Return the current UTC time in ISO‑8601 format.
+    Example → {"utc": "2025‑05‑21T06:42:00Z"}"""
+    now = datetime.now(timezone.utc)
+    return {"utc": now.isoformat()}
 
 
-def create_agent():
-    def run_step(state: Dict) -> Dict:
-        """Run one step of the agent."""
-        logger.info(f"Received state: {state}")
+# Create the chat model
+model = ChatGoogleGenerativeAI(
+    model=os.getenv("MODEL_NAME"),
+    google_api_key=api_key,
+    convert_system_message_to_human=True
+)
 
-        messages = state.get("messages", [])
-        if not messages:
-            logger.warning("No messages in state")
-            return state
+# Create the agent using LangGraph's prebuilt React agent
+graph = create_react_agent(
+    model=model,
+    tools=[get_current_time],
+    prompt="""You are a helpful assistant that can tell the current time when asked.
+If the user asks about time, use the get_current_time tool to get the current UTC time.
+For all other questions, respond normally without using the tool."""
+)
 
-        user_message = messages[-1]["content"]
-        logger.info(f"Processing user message: {user_message}")
-
-        # Simple prompt that includes both system behavior and user message
-        prompt = f"""You are a helpful assistant that can tell the current time when asked.
-If the user asks about time, respond with exactly 'GET_TIME'.
-Otherwise, be helpful and respond normally.
-
-User message: {user_message}"""
-
-        try:
-            response = model.generate_content(prompt)
-            logger.info(f"Initial model response: {response.text}")
-
-            if "GET_TIME" in response.text:
-                time = get_current_time.invoke(prompt)
-                logger.info(f"Getting current time: {time}")
-                response = model.generate_content(f"The current UTC time is {time}. Please tell this to the user.")
-
-            return {
-                "messages": messages + [{"type": "ai", "content": response.text}]
-            }
-
-        except Exception as e:
-            logger.error(f"Error in run_step: {str(e)}")
-            return {
-                "messages": messages + [{"type": "ai", "content": "I apologize, but I encountered an error. Please try again."}]
-            }
-
-    workflow = Graph()
-    workflow.add_node("agent", run_step)
-    workflow.set_entry_point("agent")
-    workflow.set_finish_point("agent")
-
-    logger.info("Created LangGraph workflow")
-    return workflow.compile()
-
-
-graph = create_agent()
 logger.info("Graph compiled and ready")
