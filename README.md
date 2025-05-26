@@ -20,6 +20,7 @@ pip install -r requirements.txt
 3. Create a `.env` file with your Google API key:
 ```bash
 echo "GOOGLE_API_KEY=your_api_key_here" > .env
+echo "MODEL_NAME="gemini-2.0-flash" > .env
 ```
 
 You can get your API key from the [Google AI Studio](https://aistudio.google.com/apikey).
