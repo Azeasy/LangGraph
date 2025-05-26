@@ -1,0 +1,7 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "chat": "graph:graph"
+  },
+  "env": ".env"
+}
